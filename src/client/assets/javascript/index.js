@@ -76,7 +76,6 @@ function setupClickHandlers() {
 		if (target.matches('#gas-peddle')) {
 			handleAccelerate()
 		}
-
 	}, false)
 }
 
@@ -92,21 +91,26 @@ async function delay(ms) {
 
 // This async function controls the flow of the race, add the logic and error handling
 async function handleCreateRace() {
-	// render starting UI
-	renderAt('#race', renderRaceStartView())
+	// Get player_id and track_id from the store
+	const { player_id, track_id } = store
+	// invoke the API call to create the race
+	try {
+		const race = await createRace(player_id, track_id)
 
-	// TODO - Get player_id and track_id from the store
+		// render starting UI
+		renderAt('#race', renderRaceStartView(race.Track))
 
-	// const race = TODO - invoke the API call to create the race, then save the result
-
-	// TODO - update the store with the race id
-	// For the API to work properly, the race id should be race id - 1
+		// update the store with the race id
+		store.race_id = race.ID - 1
+	} catch (error) {
+		console.log('Error while creating the race', error.message)
+		console.error(error)
+	}
 
 	// The race has been created, now start the countdown
-	// TODO - call the async function runCountdown
-
-	// TODO - call the async function startRace
-
+	runCountdown()
+	// start the race
+	startRace(store.race_id)
 	// TODO - call the async function runRace
 }
 
@@ -138,13 +142,17 @@ async function runCountdown() {
 		let timer = 3
 
 		return new Promise(resolve => {
-			// TODO - use Javascript's built in setInterval method to count down once per second
-
-			// run this DOM manipulation to decrement the countdown for the user
-			document.getElementById('big-numbers').innerHTML = --timer
-
-			// TODO - if the countdown is done, clear the interval, resolve the promise, and return
-
+			// count down once per second
+			const intervalId = setInterval(() => {
+				// run this DOM manipulation to decrement the countdown for the user
+				document.getElementById('big-numbers').innerHTML = --timer
+				// countdown done, clear the interval, resolve the promise, and return
+				if (timer === 0) {
+					clearInterval(intervalId)
+					Promise.resolve()
+					return
+				}
+			}, 1000);
 		})
 	} catch (error) {
 		console.log(error);
@@ -163,7 +171,8 @@ function handleSelectPodRacer(target) {
 	// add class selected to current target
 	target.classList.add('selected')
 
-	// TODO - save the selected racer to the store
+	save the selected racer to the store
+	store.player_id = target.id
 }
 
 function handleSelectTrack(target) {
@@ -178,8 +187,8 @@ function handleSelectTrack(target) {
 	// add class selected to current target
 	target.classList.add('selected')
 
-	// TODO - save the selected track id to the store
-
+	// save the selected track id to the store
+	store.track_id = target.id
 }
 
 function handleAccelerate() {
@@ -354,18 +363,17 @@ function createRace(player_id, track_id) {
 	track_id = parseInt(track_id)
 	const body = { player_id, track_id }
 
-	return fetch(`${SERVER}/api/races`, {
+	return apiFetch(`${SERVER}/api/races`, {
 		method: 'POST',
 		...defaultFetchOpts(),
 		dataType: 'jsonp',
 		body: JSON.stringify(body)
 	})
-		.then(res => res.json())
-		.catch(err => console.log("Problem with createRace request::", err))
 }
 
 function getRace(id) {
 	// GET request to `${SERVER}/api/races/${id}`
+	return apiFetch(`${SERVER}/api/races/${id}`)
 }
 
 function startRace(id) {
@@ -373,7 +381,6 @@ function startRace(id) {
 		method: 'POST',
 		...defaultFetchOpts(),
 	})
-		.then(res => res.json())
 		.catch(err => console.log("Problem with getRace request::", err))
 }
 
