@@ -1,7 +1,7 @@
 const getLastWordInPath = path => path.substring(path.lastIndexOf('/') + 1)
-
+// custom fetch 
 const apiFetch = async (url, options = {}) => {
-	const api = getLastWordInPath(url)
+	const path = getLastWordInPath(url)
 
 	try {
 		const response = await fetch(url, { ...options })
@@ -11,7 +11,7 @@ const apiFetch = async (url, options = {}) => {
 		const data = await response.json()
 		return data
 	} catch (error) {
-		console.log(`Problem fetching ${api} ::`, error.message)
+		console.log(`Problem fetching ${path} ::`, error.message)
 		console.error(error)
 	}
 }
@@ -25,7 +25,7 @@ let store = {
 	race_id: undefined,
 }
 
-// We need our javascript to wait until the DOM is loaded
+// wait until the DOM is loaded
 document.addEventListener("DOMContentLoaded", function () {
 	onPageLoad()
 	setupClickHandlers()
@@ -91,7 +91,6 @@ async function delay(ms) {
 
 // This async function controls the flow of the race, add the logic and error handling
 async function handleCreateRace() {
-	// Get player_id and track_id from the store
 	const { player_id, track_id } = store
 	// invoke the API call to create the race
 	try {
@@ -100,14 +99,12 @@ async function handleCreateRace() {
 		// render starting UI
 		renderAt('#race', renderRaceStartView(race.Track))
 
-		// update the store with the race id
 		store.race_id = race.ID - 1
 	} catch (error) {
-		console.log('Error while creating the race', error.message)
+		console.log('Error while creating the race::', error.message)
 		console.error(error)
 	}
-	// The race has been created, now start the countdown
-
+	// run the countdown and the race
 	Promise.all([await runCountdown(), startRace(store.race_id), runRace(store.race_id)]).catch(error => console.log(error))
 }
 
@@ -117,7 +114,6 @@ function runRace(raceID) {
 		const raceInterval = setInterval(() => {
 			getRace(raceID)
 				.then(res => {
-					console.log('res: ', res.status);
 					// update the leaderboard
 					if (res.status === 'in-progress') {
 						renderAt('#leaderBoard', raceProgress(res.positions))
@@ -127,7 +123,7 @@ function runRace(raceID) {
 						resolve(res)
 					}
 				}).catch(error => {
-					console.log('Error while running getRace', error.message)
+					console.log('Error while running getRace::', error.message)
 					console.error(error)
 				})
 		}, 1000)
@@ -159,8 +155,6 @@ async function runCountdown() {
 }
 
 function handleSelectPodRacer(target) {
-	console.log("selected a pod", target.id)
-
 	// remove class selected from all racer options
 	const selected = document.querySelector('#racers .selected')
 	if (selected) {
@@ -175,8 +169,6 @@ function handleSelectPodRacer(target) {
 }
 
 function handleSelectTrack(target) {
-	console.log("selected a track", target.id)
-
 	// remove class selected from all track options
 	const selected = document.querySelector('#tracks .selected')
 	if (selected) {
@@ -343,18 +335,13 @@ function defaultFetchOpts() {
 	}
 }
 
-// TODO - Make a fetch call (with error handling!) to each of the following API endpoints 
-
-// GET request to `${SERVER}/api/tracks`
 function getTracks() {
 	return apiFetch(`${SERVER}/api/tracks`)
 }
 
-// GET request to `${SERVER}/api/cars`
 function getRacers() {
 	return apiFetch(`${SERVER}/api/cars`)
 }
-
 
 function createRace(player_id, track_id) {
 	player_id = parseInt(player_id)
@@ -370,7 +357,6 @@ function createRace(player_id, track_id) {
 }
 
 function getRace(id) {
-	// GET request to `${SERVER}/api/races/${id}`
 	return apiFetch(`${SERVER}/api/races/${id}`)
 }
 
@@ -383,9 +369,6 @@ function startRace(id) {
 }
 
 function accelerate(id) {
-	// POST request to `${SERVER}/api/races/${id}/accelerate`
-	// options parameter provided as defaultFetchOpts
-	// no body or datatype needed for this request
 	return fetch(`${SERVER}/api/races/${id}/accelerate`, {
 		method: 'POST',
 		...defaultFetchOpts(),
